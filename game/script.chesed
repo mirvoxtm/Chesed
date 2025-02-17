@@ -1,7 +1,10 @@
 (bg | bg.png)
 Narrator "Suddenly, a girl approaches me, she seems a bit clumsy..."
 (show | Hod | 0 | 0 | 0.64 | 0.64)dummy.png(/show)
+(music | lakey)
 Hod "Hello! My name is Hod, Welcome to Chesed!"
 (show | Hod | 0 | 0 | 0.64 | 0.64)dummy.png(/show)
 Hod "Chesed is a simple Visual-Novel/ADV Game Engine made entirely in Haskell! Would you look at that!"
 Narrator "Once you add your images and backgrounds, you can just write away!"
+(stopmusic)
+Narrator "Amazing, right?"

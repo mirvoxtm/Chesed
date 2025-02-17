@@ -15,6 +15,9 @@ import System.IO (readFile)
 
 import Paths_Chesed (getDataFileName)
 
+import qualified Sound.ALUT as ALUT
+import Control.Monad (void)
+
 data GameState = GameState { 
     commands          :: [VNCommand],
     currentIndex      :: Int,
@@ -22,7 +25,8 @@ data GameState = GameState {
     currentBackground :: Picture,
     currentCharacter  :: Picture,
     winWidth          :: Float,
-    winHeight         :: Float
+    winHeight         :: Float,
+    currentMusic      :: Maybe ALUT.Source
 }
 
 approxTextWidth :: String -> Float
@@ -45,7 +49,7 @@ wrapText :: Float -> String -> String
 wrapText maxWidth s = unlines $ wrapWords maxWidth (words s)
 
 initialGameState :: [VNCommand] -> IO GameState
-initialGameState cmds = processNext (GameState cmds 0 "" Blank Blank 800 600)
+initialGameState cmds = processNext (GameState cmds 0 "" Blank Blank 800 600 Nothing)
 
 processNext :: GameState -> IO GameState
 processNext gs
@@ -70,6 +74,14 @@ processNext gs
 
             VNHide ->
                 processNext gs { currentCharacter = Blank, currentIndex = currentIndex gs + 1 }
+
+            VNMusic path -> do
+                newState <- playMusicALUT path gs
+                processNext newState { currentIndex = currentIndex newState + 1 }
+
+            VNStopMusic -> do
+                stopMusicALUT gs
+                processNext gs { currentIndex = currentIndex gs + 1 }
 
             _ ->
                 processNext gs { currentIndex = currentIndex gs + 1 }
@@ -124,8 +136,26 @@ handleInput _ gs = return gs
 updateState :: Float -> GameState -> IO GameState
 updateState _ gs = return gs
 
+playMusicALUT :: FilePath -> GameState -> IO GameState
+playMusicALUT relPath gs = do
+  fullPath <- getDataFileName ("game/music/" ++ relPath ++ ".wav")
+  buffer <- ALUT.createBuffer (ALUT.File fullPath)
+  source <- ALUT.genObjectName
+  ALUT.buffer source ALUT.$= Just buffer
+  ALUT.play [source]
+  return gs { currentMusic = Just source }
+
+stopMusicALUT :: GameState -> IO ()
+stopMusicALUT gs =
+  case currentMusic gs of
+    Just source -> do
+      ALUT.stop [source]
+    Nothing ->
+      return ()
+
 main :: IO ()
-main = do
+main = 
+  ALUT.withProgNameAndArgs ALUT.runALUT $ \_ _ -> do
     scriptPath <- getDataFileName "game/script.chesed"
     scriptContent <- readFile scriptPath
     case parse parseScript scriptPath scriptContent of

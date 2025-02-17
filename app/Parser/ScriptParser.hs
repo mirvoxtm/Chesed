@@ -70,7 +70,7 @@ parseSay = do
   return (VNSay speaker dialogue)
 
 parseCommand :: Parser VNCommand
-parseCommand = try parseBackground <|> try parseShow <|> parseHide <|> parseStopMusic <|> parseMusic <|> parseSay 
+parseCommand = try parseBackground <|> parseShow <|> parseHide <|> parseStopMusic <|> parseMusic <|> parseSay 
 
 parseScript :: Parser [VNCommand]
 parseScript = sepBy parseCommand (char '\n')
