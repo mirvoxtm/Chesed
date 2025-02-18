@@ -73,12 +73,17 @@ executable Chesed
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:    base ^>=4.17.2.1,
-                    gloss,
-                    gloss-juicy,
-                    ALUT,
-                    OpenAL,
-                    megaparsec
+    build-depends:  base ^>=4.17.2.1
+                    , linear
+                    , text
+                    , megaparsec
+                    , sdl2
+                    , sdl2-image
+                    , sdl2-mixer
+                    , sdl2-ttf
+                    , OpenAL
+                    , ALUT
+                    , megaparsec
 
     -- Directories containing source files.
     hs-source-dirs:   app

@@ -72,5 +72,8 @@ parseSay = do
 parseCommand :: Parser VNCommand
 parseCommand = try parseBackground <|> parseShow <|> parseHide <|> parseStopMusic <|> parseMusic <|> parseSay 
 
+eoli :: Parser ()
+eoli = void (string "\r\n") <|> void (char '\n')
+
 parseScript :: Parser [VNCommand]
-parseScript = sepBy parseCommand (char '\n')
+parseScript = between (many eoli) eof (sepEndBy parseCommand eoli)
