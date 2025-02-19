@@ -59,50 +59,6 @@ loadTexture rdr path = do
   fullPath <- getDataFileName path
   IMG.loadTexture rdr fullPath
 
-advanceToDialogue :: SDL.Renderer -> GameState -> IO GameState
-advanceToDialogue rdr gs
-  | currentIndex gs >= length (commands gs) =
-      error "Script contains no dialogue commands!"
-  | otherwise =
-      case commands gs !! currentIndex gs of
-        VNSay speaker dialogue -> do
-          let newDialog = if speaker == "Narrator "
-                          then dialogue
-                          else speaker ++ ": " ++ dialogue
-          return gs { currentDialog = newDialog
-                    , currentIndex = currentIndex gs + 1 }
-        VNSetBackground path -> do
-          tex <- loadTexture rdr ("game/images/" ++ path)
-          advanceToDialogue rdr gs { currentBackground = Just tex
-                                   , currentIndex = currentIndex gs + 1 }
-
-        VNShowCharacter _ posx posy sx sy path -> do
-          tex <- loadTexture rdr ("game/images/" ++ path)
-          case (readMaybe posx :: Maybe CInt,
-                readMaybe posy :: Maybe CInt,
-                readMaybe sx   :: Maybe CInt,
-                readMaybe sy   :: Maybe CInt) of
-            (Just x, Just y, Just width, Just height) -> do
-                let destRect = SDL.Rectangle (SDL.P (V2 x y)) (V2 width height)
-                advanceToDialogue rdr gs { currentCharacter = Just tex
-                                        , characterRect = Just destRect
-                                        , currentIndex = currentIndex gs + 1 }
-            _ -> error $ "Failed to parse numeric values: " ++ show (posx, posy, sx, sy)
-
-        VNHide ->
-          advanceToDialogue rdr gs { currentCharacter = Nothing
-                                   , currentIndex = currentIndex gs + 1 }
-        VNMusic path -> do
-          newState <- playMusicALUT path gs
-          advanceToDialogue rdr (newState { currentIndex = currentIndex newState + 1 })
-
-        VNStopMusic -> do
-          stopMusicALUT gs
-          advanceToDialogue rdr (gs { currentIndex = currentIndex gs + 1 })
-
-        _ ->
-          advanceToDialogue rdr gs { currentIndex = currentIndex gs + 1 }
-
 processNext :: SDL.Renderer -> GameState -> IO GameState
 processNext rdr gs
   | currentIndex gs >= length (commands gs) = return gs
@@ -111,7 +67,7 @@ processNext rdr gs
         VNSay speaker dialogue -> do
           let newDialog = if speaker == "Narrator "
                           then dialogue
-                          else speaker ++ ": " ++ dialogue
+                          else speaker ++ "\n\n" ++ dialogue
           return gs { currentDialog = newDialog
                     , currentIndex = currentIndex gs + 1 }
         VNSetBackground path -> do
@@ -142,21 +98,21 @@ processNext rdr gs
 
         VNStopMusic -> do
           stopMusicALUT gs
-          advanceToDialogue rdr (gs { currentIndex = currentIndex gs + 1 })
+          processNext rdr (gs { currentIndex = currentIndex gs + 1 })
 
         _ ->
           processNext rdr gs { currentIndex = currentIndex gs + 1 }
 
-initialGameState :: SDL.Renderer -> [VNCommand] -> IO GameState
-initialGameState rdr cmds =
-  advanceToDialogue rdr GameState
+initialGameState :: CInt -> CInt -> SDL.Renderer -> [VNCommand] -> IO GameState
+initialGameState w h rdr cmds =
+  processNext rdr GameState
     { commands          = cmds
     , currentIndex      = 0
     , currentDialog     = ""
     , currentBackground = Nothing
     , currentCharacter  = Nothing
-    , winWidth          = 800
-    , winHeight         = 600
+    , winWidth          = w
+    , winHeight         = h
     , currentMusic      = Nothing
     }
 
@@ -280,7 +236,7 @@ run windowName width height = ALUT.withProgNameAndArgs ALUT.runALUT $ \_ _ -> do
                 putStrLn (show cs)
                 return cs
 
-    initState <- initialGameState rdr cmds
+    initState <- initialGameState width height rdr cmds
     appLoop rdr font initState
 
     TTF.quit
